@@ -1,17 +1,25 @@
-﻿// CMakeProject1.cpp: 定义应用程序的入口点。
-//
+﻿
 #include <iostream>
+
+#if __has_include(<emscripten/emscripten.h>)
+#include <emscripten/emscripten.h>
+#elif __has_include("emscripten.h")
 #include "emscripten.h"
+#else
+#ifndef EMSCRIPTEN_KEEPALIVE
+#define EMSCRIPTEN_KEEPALIVE
+#endif
+#endif
+
 #include "CMakeProject1.h"
-#include "NT\NTHeader.h"
+#include "NT/NTHeader.h"
 #include <string>
-#include "dump\Convar.h"
-//#include "include\json.hpp"
-#include <nlohmann/json.hpp>
+#include "dump/Convar.h"
+#include "include/json.hpp"
 #include "dump/dataTable.h"
 #include "dump/buttons.h"
 #include "dump/dataMap.h"
-#include "dump/Mics.h"
+#include "dump/Misc.h"
 #include "dump/weaponSettings.h"
 
 auto  get_image_base_from_pe_string(const std::string& pe_data) ->std::uint64_t {
@@ -51,7 +59,7 @@ extern "C" {
     }
 
 	EMSCRIPTEN_KEEPALIVE
-    bool dumpAll(const uint8_t* data, size_t size,char ** output,char ** outputError) {
+    bool dumpAll(const uint8_t* data, size_t size, const char** output, const char** outputError) {
 		// 将数据转换为 std::vector<uint8_t> 或 std::string 来处理
 		std::string dataStr(reinterpret_cast<const char*>(data), size);
 
@@ -82,8 +90,12 @@ extern "C" {
             resJson["dataMap"] = dataMap;
 
             std::map<std::string, uint64_t> misc;
-            Mics::dump(ctx,misc,errorList);
-            resJson["Mics"] = misc;
+            std::string gameVersion;
+            Misc::dump(ctx, misc, errorList, &gameVersion);
+            resJson["Miscellaneous"] = misc;
+            if (!gameVersion.empty()) {
+                resJson["Miscellaneous"]["GameVersion"] = gameVersion;
+            }
 
             std::map<std::string, uint64_t> weaponsettings;
             weaponSettings::dump(ctx, weaponsettings);
@@ -91,12 +103,12 @@ extern "C" {
 
             std::cout << "start dump" << std::endl;
             printstr = resJson.dump();
-            *output = printstr.data();
+            *output = printstr.c_str();
             std::cout << "end dump" << std::endl;
 
             errorJson = errorList;
             printstrError = errorJson.dump();
-            *outputError = printstrError.data();
+            *outputError = printstrError.c_str();
         }catch (const std::exception& e) {
             std::cout << "Exception caught: " << e.what() << std::endl;
             return false;

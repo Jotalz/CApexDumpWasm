@@ -49,22 +49,15 @@ public:
             auto conc = reinterpret_cast<const RawConCommand*>(ctx.data.data() + matches[i] - 5);
             if ( !conc->m_pszName || !conc->m_fnCommandCallback || conc->m_fnCommandType != 2) continue;
 
-
-
-            //char name[33];
-            //name[sizeof(name) - 1] = '\0';
-            //if (!instance->RPM(conc->m_pszName, name, sizeof(name) - 1)) continue;
             if (!conc->m_pszName || !PS::In(ctx.baseAddress,ctx.data.size(),conc->m_pszName,8)) {
                 continue;
             }
             std::string name = std::string((char *)(ctx.data.data() + conc->m_pszName - ctx.baseAddress));
             if (!name.size() || name[0] != '+') continue;
-
+            name.replace(0, 1, "in_");
             //LogE("name: %s", name.c_str());
 
             auto cstr = std::string((char *)(ctx.data.data() + (conc->m_fnCommandCallback - ctx.baseAddress)), 0x100);
-            //cstr.resize(0x100);
-            //if (!instance->RPM(, cstr.data(), cstr.size())) continue;
 
             auto offset = PS::Search(cstr.c_str(), cstr.size(),
                                      ("\x84\xC0\x75\x44\x8B\x05\x00\x00\x00\x00\x3B\xD8\x74\x3A\x8B\x0D\x00\x00\x00\x00\x3B\xD9\x74\x30\x85\xC0\x75\x08"), ("xxxxxx????xxxxxx????xxxxxxxx"));
@@ -76,7 +69,7 @@ public:
 
             offsets[name] = offset;
 
-            //std::cout <<"Key: " << name << " Value: " << offset << std::endl;
+            // std::cout <<"Key: " << name << " Value: " << offset << std::endl;
             //LogE("Key: %s Value: %p", name.c_str(), offset);
         }
 

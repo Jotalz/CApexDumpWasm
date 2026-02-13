@@ -51,12 +51,18 @@ class dataTable{
 public:
 
     inline static std::map<std::string, std::map<std::string, uint64_t>>  dataTableOffsets = std::map<std::string, std::map<std::string, uint64_t>>();
-
-
-
     inline static bool dump(dumpContext ctx,std::map<std::string, std::map<std::string, uint64_t>>& output){
         {
-
+            // Because RecvTable.props goes through heap, find their constructors instead...
+            /*
+            4C 8D 0D ?? ?? ?? ??            lea     r9, RecvTableName
+            41 B8 ?? ?? ?? ??               mov     r8d, num props
+            48 8D 15 ?? ?? ?? ??            lea     rdx, g_RecvProps
+            48 8D 0D ?? ?? ?? ??            lea     rcx, g_RecvTable
+            E8 ?? ?? ?? ??                  call    constructor
+            sometimes an extra instruction here
+            B8 01 00 00 00                  mov     eax, 1
+            */
             auto matches = PS::SearchInSectionMultiple(ctx.data.data(),".text","\x4C\x8D\x0D\x00\x00\x00\x00\x41\xB8\x00\x00\x00\x00\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8","xxx????xx????xxx????xxx????x");
 
             int matchesCount = 0;
@@ -67,9 +73,9 @@ public:
 
             for (auto i = size_t(); i < matches.size(); i++)
             {
-                auto tableBase = reinterpret_cast<const RecvTable*>( (uint64_t)RVA(matches[i] + 7 + 6 + 7+ ctx.data.data(), 7));
+                auto tableBase = reinterpret_cast<const RecvTable*>( (uint64_t)RVA(matches[i] + 7 + 6 + 7 + ctx.data.data(), 7));
                 auto tableName = reinterpret_cast<const char*>(ctx.data.data() + (tableBase->m_name - ctx.baseAddress));
-                auto tableProp = reinterpret_cast<const RecvProp*>( RVA(matches[i] + 7 + 6+ ctx.data.data(), 7));
+                auto tableProp = reinterpret_cast<const RecvProp*>( RVA(matches[i] + 7 + 6 + ctx.data.data(), 7));
 
                 if (!PS::In(ctx.baseAddress,ctx.data.size(),tableBase->m_name,8)) continue;
 
@@ -108,7 +114,7 @@ public:
 
             for (auto i = size_t(0); i < matches.size(); i++)
             {
-                auto tableBase = reinterpret_cast<const RecvTable*>(  RVA(matches[i] + 7 + 6+ctx.data.data(), 7));
+                auto tableBase = reinterpret_cast<const RecvTable*>(  RVA(matches[i] + 7 + 6 + ctx.data.data(), 7));
                 auto tableProp = reinterpret_cast<const RecvProp*>( RVA(matches[i] + ctx.data.data(), 7));
                 if (!PS::In(ctx.baseAddress,ctx.data.size(),tableBase->m_name,8)) continue;
                 auto tableName = reinterpret_cast<const char*>(ctx.data.data() + (tableBase->m_name - ctx.baseAddress));
@@ -137,8 +143,8 @@ public:
 
         {
             auto matches = PS::SearchInSectionMultiple(ctx.data.data(),".text",
-                                                       "\x48\x89\x0D\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xC7\x05\x00\x00\x00\x00\x00\x00\x00\x00\x48"
-                    ,"xxx????xxx????xx????????x");
+                                                       "\x48\x8D\x0D\x00\x00\x00\x00\xC7\x05\x00\x00\x00\x00\x00\x00\x00\x00\x48\x89\x0D\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00"
+                    ,"xxx????xx????????xxx????xxx????");
 
             int matchesCount = 0;
             if (!matches.size()){
@@ -148,8 +154,8 @@ public:
 
             for (auto i = size_t(0); i < matches.size(); i++)
             {
-                auto tableBase = reinterpret_cast<const RecvTable*>(RVA(matches[i] + 7 + 7 +ctx.data.data(), 6) + 4 - 16);
-                auto tableProp = reinterpret_cast<const RecvProp*>(RVA(matches[i] + 7 + ctx.data.data(), 7));
+                auto tableBase = reinterpret_cast<const RecvTable*>(RVA(matches[i] + 7 + ctx.data.data(), 6) + 4 - 16);
+                auto tableProp = reinterpret_cast<const RecvProp*>(RVA(matches[i] + 24 + ctx.data.data(), 7));
                 if (!PS::In(ctx.baseAddress,ctx.data.size(),tableBase->m_name,8)) continue;
                 auto tableName = reinterpret_cast<const char*>(ctx.data.data() + (tableBase->m_name - ctx.baseAddress));
                 if(!PS::isAsciiOnly(tableName)){
@@ -174,8 +180,6 @@ public:
 
         return true;
     }
-
-
 };
 
 #endif //CMAKEPROJECT1_DATATABLE_H

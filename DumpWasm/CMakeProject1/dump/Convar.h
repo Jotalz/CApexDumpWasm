@@ -65,22 +65,16 @@ public:
             return false;
         }
 
-
 		for (auto i = size_t(); i < matches.size(); i++) {
 			auto offset = matches[i];
 			RawConVar* convar = (RawConVar*)(ctx.data.data() + offset);
-
 
 			if (!convar->m_pszDescription || !convar->m_pszName) {
 				continue;
 			}
 
 			std::string name = std::string((char*)convar->m_pszName - ctx.baseAddress + (std::uint64_t)ctx.data.data());
-
 			offsets[name] = offset;
-
-
-
 			//output += std::format("name {} value {:#x} \r\n", name.data(), (offset));
 
 			//LogE("%s %p", name.data(), offset);

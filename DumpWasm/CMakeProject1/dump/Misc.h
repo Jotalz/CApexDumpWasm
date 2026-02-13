@@ -15,10 +15,96 @@
 #include "../NT/NTHeader.h"
 #include "../3rd/Log.h"
 #include <vector>
+#include <cstring>
+#include <cctype>
+#include <algorithm>
 
-class Mics{
+class Misc{
 public:
-    inline static bool dump(dumpContext ctx,std::map<std::string, uint64_t>& output,std::vector<std::string>& errorlist){
+    inline static const char* readCStringByVA(const dumpContext& ctx, std::uint64_t va){
+        if (!va || va < ctx.baseAddress) return nullptr;
+        const std::uint64_t rva = va - ctx.baseAddress;
+        if (rva >= ctx.data.size()) return nullptr;
+        const char* p = ctx.data.data() + rva;
+        const char* end = ctx.data.data() + ctx.data.size();
+        const void* z = std::memchr(p, '\0', static_cast<size_t>(end - p));
+        if (!z) return nullptr;
+        return p;
+    }
+
+    inline static bool looksLikeVersionString(const char* s){
+        if (!s || s[0] != 'v') return false;
+        const size_t len = std::strlen(s);
+        if (len < 2 || len > 64) return false;
+
+        bool hasDigit = false;
+        for (size_t i = 0; i < len; ++i){
+            const unsigned char c = static_cast<unsigned char>(s[i]);
+            if (std::isdigit(c)) hasDigit = true;
+            if (!(std::isalnum(c) || c == '.' || c == '_' || c == '-')) return false;
+        }
+        return hasDigit;
+    }
+
+    inline static bool findGameVersion(const dumpContext& ctx, std::string& gameVersion){
+        gameVersion.clear();
+
+        const std::string kVersionFile = "gameversion.txt";
+        const size_t fileRva = ctx.data.find(kVersionFile);
+        if (fileRva == std::string::npos) return false;
+
+        const std::uint64_t fileVA = ctx.baseAddress + static_cast<std::uint64_t>(fileRva);
+        const size_t n = ctx.data.size();
+
+        for (size_t i = 0; i + 7 <= n; ++i){
+            const unsigned char b0 = static_cast<unsigned char>(ctx.data[i]);
+            const unsigned char b1 = static_cast<unsigned char>(ctx.data[i + 1]);
+            const unsigned char modrm = static_cast<unsigned char>(ctx.data[i + 2]);
+
+            if (!(b1 == 0x8D && ((modrm & 0xC7) == 0x05))) continue;
+            if (!(b0 == 0x48 || b0 == 0x49 || b0 == 0x4C || b0 == 0x4D)) continue;
+
+            const std::int32_t rel = *reinterpret_cast<const std::int32_t*>(ctx.data.data() + i + 3);
+            const std::int64_t targetRvaSigned = static_cast<std::int64_t>(i) + 7 + rel;
+            if (targetRvaSigned < 0 || static_cast<size_t>(targetRvaSigned) >= n) continue;
+
+            const std::uint64_t targetVA = ctx.baseAddress + static_cast<std::uint64_t>(targetRvaSigned);
+            if (targetVA != fileVA) continue;
+
+            const size_t begin = (i > 32) ? (i - 32) : 0;
+            for (size_t j = begin; j + 7 <= i; ++j){
+                const unsigned char c0 = static_cast<unsigned char>(ctx.data[j]);
+                const unsigned char c1 = static_cast<unsigned char>(ctx.data[j + 1]);
+                const unsigned char cmodrm = static_cast<unsigned char>(ctx.data[j + 2]);
+
+                if (!(c1 == 0x8D && ((cmodrm & 0xC7) == 0x05))) continue;
+                if (!(c0 == 0x48 || c0 == 0x49 || c0 == 0x4C || c0 == 0x4D)) continue;
+
+                const std::int32_t rel2 = *reinterpret_cast<const std::int32_t*>(ctx.data.data() + j + 3);
+                const std::int64_t target2RvaSigned = static_cast<std::int64_t>(j) + 7 + rel2;
+                if (target2RvaSigned < 0 || static_cast<size_t>(target2RvaSigned) >= n) continue;
+
+                const std::uint64_t versionVA = ctx.baseAddress + static_cast<std::uint64_t>(target2RvaSigned);
+                const char* versionPtr = readCStringByVA(ctx, versionVA);
+                if (!looksLikeVersionString(versionPtr)) continue;
+
+                gameVersion = versionPtr;
+                return true;
+            }
+        }
+
+        return false;
+    }
+    inline static bool dump(dumpContext ctx,std::map<std::string, uint64_t>& output,std::vector<std::string>& errorlist,std::string* gameVersionOut = nullptr){
+        if (gameVersionOut) {
+            std::string gameVersion;
+            if (findGameVersion(ctx, gameVersion)) {
+                *gameVersionOut = gameVersion;
+                LogE("GameVersion : %s", gameVersion.c_str());
+            } else {
+                errorlist.push_back("GameVersion un find");
+            }
+        }
         uint64_t LocalPlayer = Pattern::FindPattern<uint64_t>(ctx.data,("48 8D 0D ? ? ? ? 48 8B D7 FF 50 58"),7);
         LogE("LocalPlayer : 0x%llx", LocalPlayer);
         if (!LocalPlayer) {

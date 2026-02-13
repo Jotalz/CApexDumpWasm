@@ -1,5 +1,6 @@
-/DumpWasm/.gitignore
-/WASMLoader/.gitignore
-
+.vscode
 /.idea/*
 /bin/*
+build
+offsets.ini
+vcpkg.json

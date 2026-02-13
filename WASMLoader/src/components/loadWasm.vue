@@ -56,7 +56,7 @@ onMounted(async () => {
 });
 
 const formatDump = function (dumpField) {
-  dumpMsg.value = `${formatMics(dumpObj.value["Mics"])}
+  dumpMsg.value = `${formatMics(dumpObj.value["Miscellaneous"] ?? dumpObj.value["Misc"] )}
 
 ${formatButtons(dumpObj.value["Buttons"])}
 
@@ -70,20 +70,24 @@ ${formatWeaponSettings(dumpObj.value["weaponSettings"])}
 `;
 };
 
+const formatValue = function (value) {
+  return typeof value === "number" ? `0x${value.toString(16)}` : String(value);
+};
+
 const formatMics = function (ConVarsObj) {
-  const ConvarformattedData = Object.entries(ConVarsObj).map(
+  const ConvarformattedData = Object.entries(ConVarsObj || {}).map(
     ([key, value], index) => {
-      return `${key == "" ? "{empty}" : key} = 0x${value.toString(16)}`;
+      return `${key == "" ? "{empty}" : key} = ${formatValue(value)}`;
     }
   );
 
-  return `[Mics] \n${ConvarformattedData.join("\n")}`;
+  return `[Misc] \n${ConvarformattedData.join("\n")}`;
 };
 
 const formatConvar = function (ConVarsObj) {
-  const ConvarformattedData = Object.entries(ConVarsObj).map(
+  const ConvarformattedData = Object.entries(ConVarsObj || {}).map(
     ([key, value], index) => {
-      return `${key == "" ? "{empty}" : key} = 0x${value.toString(16)}`;
+      return `${key == "" ? "{empty}" : key} = ${formatValue(value)}`;
     }
   );
 
@@ -91,9 +95,9 @@ const formatConvar = function (ConVarsObj) {
 };
 
 const formatWeaponSettings = function (ConVarsObj) {
-  const ConvarformattedData = Object.entries(ConVarsObj).map(
+  const ConvarformattedData = Object.entries(ConVarsObj || {}).map(
     ([key, value], index) => {
-      return `${key == "" ? "{empty}" : key} = 0x${value.toString(16)}`;
+      return `${key == "" ? "{empty}" : key} = ${formatValue(value)}`;
     }
   );
 
@@ -101,9 +105,9 @@ const formatWeaponSettings = function (ConVarsObj) {
 };
 
 const formatButtons = function (ConVarsObj) {
-  const ConvarformattedData = Object.entries(ConVarsObj).map(
+  const ConvarformattedData = Object.entries(ConVarsObj || {}).map(
     ([key, value], index) => {
-      return `${key == "" ? "{empty}" : key} = 0x${value.toString(16)}`;
+      return `${key == "" ? "{empty}" : key} = ${formatValue(value)}`;
     }
   );
 
@@ -111,10 +115,10 @@ const formatButtons = function (ConVarsObj) {
 };
 
 const formatRecvTable = function (RecvTableObj) {
-  const recvTableformattedData = Object.entries(RecvTableObj).map(
+  const recvTableformattedData = Object.entries(RecvTableObj || {}).map(
     ([key, value]) => {
-      const tableinfo = Object.entries(value).map(([key, value]) => {
-        return `${key} = 0x${value.toString(16)}`;
+      const tableinfo = Object.entries(value || {}).map(([key, value]) => {
+        return `${key} = ${formatValue(value)}`;
       });
 
       return `[${key}]\n${tableinfo.join("\n")}\n`;
@@ -125,10 +129,10 @@ const formatRecvTable = function (RecvTableObj) {
 };
 
 const formatdataMap = function (RecvTableObj) {
-  const recvTableformattedData = Object.entries(RecvTableObj).map(
+  const recvTableformattedData = Object.entries(RecvTableObj || {}).map(
     ([key, value]) => {
-      const tableinfo = Object.entries(value).map(([key, value]) => {
-        return `${key} = 0x${value.toString(16)}`;
+      const tableinfo = Object.entries(value || {}).map(([key, value]) => {
+        return `${key} = ${formatValue(value)}`;
       });
 
       return `[${key}]\n${tableinfo.join("\n")}\n`;
