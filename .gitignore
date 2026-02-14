@@ -4,3 +4,4 @@
 build
 offsets.ini
 vcpkg.json
+node_modules

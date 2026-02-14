@@ -151,12 +151,12 @@ public:
         }
 
 
-        uint64_t GlobalVars = (uint64_t)Pattern::FindPattern(ctx.data,("48 8D 15 ? ? ? ? FF 50 10 85 C0"), 7);
+        uint64_t GlobalVars = (uint64_t)Pattern::FindPattern(ctx.data,("F3 0F 11 ? ? ? ? ? F3 0F 11 ? ? ? ? ? F3 0F 11 ? ? ? ? ? F3 0F 11 ? ? ? ? ? F3 0F 11 ? ? ? ? ? 72"), 24);
         LogE("GlobalVars : 0x%llx", GlobalVars);
         if (!GlobalVars) {
             errorlist.push_back("GlobalVars un find");
         } else{
-            output["GlobalVars"] = GlobalVars;
+            output["GlobalVars"] = GlobalVars - 0XC;
         }
 
         uint64_t NetworkVarTablePtr = (uint64_t)Pattern::FindPattern(ctx.data,("48 8D ? ? ? ? ? 83 7C ? ? ? 74 ? 48 8B D7 48 8D 0D ? ? ? ? E8 ? ? ? ? EB"), 7) ;
@@ -223,8 +223,8 @@ public:
 
 
         //find string lastVisibleTime
-        uint64_t lastVisibleTime = Pattern::FindPatternByProc<uint64_t>(ctx.data,("8B 8B ? ? ? ? 89 08 48 8D 15 ? ? ? ? 48 8D 4C 24 ? E8 ? ? ? ? 48 85 C0 74 08 8B 8B ? ? ? ? 89 08 48 8D 15 ? ? ? ? 48 8D 4C 24 ? E8 ? ? ? ? 48 85 C0 74 08 8B 8B ? ? ? ? 89 08 48 8D 15 ? ? ? ? 48 8D 4C 24 ? E8 ? ? ? ? 48 85 C0 74 08"),[&](uint64_t addr, uint64_t base)->uint64_t {
-            return (uint64_t)(*(UINT32*)( (uint64_t)addr + 2));
+        uint64_t lastVisibleTime = Pattern::FindPatternByProc<uint64_t>(ctx.data,("4C 8B CE 49 8B 3E"),[&](uint64_t addr, uint64_t base)->uint64_t {
+            return (uint64_t)(*(UINT32*)( (uint64_t)addr + 3 + 3 + 5));
         });
 
         if(!lastVisibleTime){
@@ -249,8 +249,8 @@ public:
 
 
 //camera_origin = *(UINT32*)((FindPattern(E("0F 2E 89 ? ? ? ? 7A 58")) + 3));
-        uint64_t camera_origin = Pattern::FindPatternByProc<uint64_t>(ctx.data,("0F 2E 89 ? ? ? ? 7A 62"), [&](uint64_t addr, uint64_t base)->uint64_t {
-            return (uint64_t)(*(UINT32*)( (uint64_t)addr + 3));
+        uint64_t camera_origin = Pattern::FindPatternByProc<uint64_t>(ctx.data,("48 8B F9 0F 2E 89"), [&](uint64_t addr, uint64_t base)->uint64_t {
+            return (uint64_t)(*(UINT32*)( (uint64_t)addr + 3 + 3));
         });
         LogE("camera_origin : 0x%llx", camera_origin);
         if (!camera_origin) {
